@@ -1,0 +1,13 @@
+# copied from https://github.com/huggingface/community-events/blob/main/whisper-fine-tuning-event/requirements.txt
+torch>=1.7
+torchaudio
+datasets
+librosa
+jiwer
+evaluate>=0.3.0
+pandas
+tensorboard
+numpy
+ffmpeg-python
+einops
+tqdm
