@@ -16,7 +16,7 @@ def pad_or_trim(signal, length: int = 480000, *, axis: int = -1):
     return signal
 
 def log_mel_spectrogram(
-    audio: torch.Tensor,
+    audio,
     n_mels: int = 80,
     n_fft: int = 400,
     hop_length: int = 160,
@@ -25,6 +25,10 @@ def log_mel_spectrogram(
     mel_max: float = 8000.0,
 ):
     """Convert audio waveform to log-mel spectrogram."""
+    # Convert numpy array to tensor if needed
+    if isinstance(audio, np.ndarray):
+        audio = torch.from_numpy(audio)
+    
     # Make sure audio is 2D (batch_size, signal) and float32
     if audio.ndim == 1:
         audio = audio.unsqueeze(0)

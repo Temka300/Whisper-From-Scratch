@@ -91,6 +91,9 @@ class WhisperTokenizer:
             if tid in self.tokens:
                 text += self.tokens[tid]
                 
+        # Print token stats for debugging
+        print(f"Decoding {len(token_ids)} tokens, unique tokens: {len(set(token_ids))}")
+        
         # Remove special tokens
         text = text.replace(self.bos_token, "").replace(self.eos_token, "")
         return text.strip()
@@ -120,5 +123,29 @@ class WhisperTokenizer:
         """Decode a batch of token ids."""
         if token_ids.ndim == 1:
             return self.decode(token_ids.tolist())
+        
+        results = []
+        for i, ids in enumerate(token_ids):
+            # Print more detailed information for the first few examples
+            if i < 3:
+                print(f"Batch item {i}, token shape: {ids.shape}")
+                unique_tokens = set(ids.tolist())
+                print(f"Unique tokens ({len(unique_tokens)}): {list(unique_tokens)[:10]}...")
+                
+                # Show the actual tokens
+                tokens_as_text = []
+                for tid in ids[:20].tolist():
+                    if tid in self.tokens:
+                        tokens_as_text.append(self.tokens[tid])
+                    else:
+                        tokens_as_text.append(f"<UNKNOWN:{tid}>")
+                print(f"First tokens as text: {''.join(tokens_as_text)}")
             
-        return [self.decode(ids.tolist()) for ids in token_ids]
+            text = self.decode(ids.tolist())
+            results.append(text)
+            
+            # Print the result for debugging
+            if i < 3:
+                print(f"Decoded text: '{text}'")
+                
+        return results

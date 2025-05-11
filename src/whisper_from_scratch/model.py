@@ -146,15 +146,69 @@ class Whisper(nn.Module):
 
     def save(self, path: str):
         """Save model state dict."""
+        # Extract current dimensions from model
+        n_audio_state = self.encoder.positional_embedding.shape[1]
+        n_text_state = self.decoder.positional_embedding.shape[1]
+        
+        # Determine model size
+        model_size = "custom"
+        if n_audio_state == 384:
+            model_size = "tiny"
+        elif n_audio_state == 768:
+            model_size = "small"
+        elif n_audio_state == 1280:
+            model_size = "medium"
+        
+        # Get full dimensions
+        dims = {
+            "n_mels": 80,
+            "n_vocab": self.decoder.token_embedding.weight.shape[0],
+            "n_audio_ctx": self.encoder.positional_embedding.shape[0],
+            "n_audio_state": n_audio_state,
+            "n_audio_head": self.encoder.blocks[0].attn.n_head,
+            "n_audio_layer": len(self.encoder.blocks),
+            "n_text_ctx": self.decoder.positional_embedding.shape[0],
+            "n_text_state": n_text_state,
+            "n_text_head": self.decoder.blocks[0].attn.n_head,
+            "n_text_layer": len(self.decoder.blocks)
+        }
+        
+        # Save checkpoint with dimensions
         torch.save({
-            "dims": self.get_default_dims(),
-            "model_state_dict": self.state_dict()
+            "model_state_dict": self.state_dict(),
+            "dims": dims,
+            "model_size": model_size
         }, path)
     
     @classmethod
     def load(cls, path: str):
         """Load model from path."""
         checkpoint = torch.load(path)
-        model = cls(checkpoint["dims"])
+        
+        # Get model dimensions from checkpoint
+        model_dims = checkpoint.get("dims")
+        
+        if model_dims is None:
+            # Try to infer dimensions from model state dict
+            state_dict = checkpoint["model_state_dict"]
+            embed_shape = None
+            
+            # Check encoder's positional embedding to determine model size
+            for key, param in state_dict.items():
+                if 'encoder.positional_embedding' in key:
+                    embed_shape = param.shape[1]
+                    break
+            
+            if embed_shape == 384:
+                model_dims = cls.get_default_dims("tiny")
+            elif embed_shape == 768:
+                model_dims = cls.get_default_dims("small")
+            elif embed_shape == 1280:
+                model_dims = cls.get_default_dims("medium")
+            else:
+                raise ValueError(f"Could not determine model dimensions from checkpoint")
+        
+        print(f"Loading model with dimensions: {model_dims}")
+        model = cls(model_dims)
         model.load_state_dict(checkpoint["model_state_dict"])
         return model
